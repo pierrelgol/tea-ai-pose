@@ -6,7 +6,7 @@ from typing import Any
 
 from .config import InferConfig
 from .dataset import list_split_images
-from .writer import _format_obb_line, write_prediction_file
+from .writer import _format_pose_line, write_prediction_file
 from pipeline_runtime_utils import resolve_device, set_seed
 
 
@@ -16,28 +16,32 @@ import numpy as np
 def _result_to_lines(res: Any) -> list[str]:
     lines: list[str] = []
 
-    if getattr(res, "obb", None) is not None:
-        obb = res.obb
-        if hasattr(obb, "xyxyxyxyn") and obb.xyxyxyxyn is not None:
-            coords = obb.xyxyxyxyn.cpu().numpy()
-        elif hasattr(obb, "xyxyxyxy") and obb.xyxyxyxy is not None:
-            px = obb.xyxyxyxy.cpu().numpy()
-            h, w = res.orig_shape[:2]
-            coords = px.astype(np.float64)
-            coords[:, :, 0] /= w
-            coords[:, :, 1] /= h
-        else:
-            coords = np.zeros((0, 4, 2), dtype=np.float32)
+    boxes = getattr(res, "boxes", None)
+    keypoints = getattr(res, "keypoints", None)
+    if boxes is None or keypoints is None:
+        raise RuntimeError("model prediction does not expose pose output; pose model/weights are required")
 
-        confs = obb.conf.cpu().numpy() if hasattr(obb, "conf") else np.ones((coords.shape[0],), dtype=np.float32)
-        classes = obb.cls.cpu().numpy().astype(int) if hasattr(obb, "cls") else np.zeros((coords.shape[0],), dtype=int)
+    if not hasattr(boxes, "xywhn") or boxes.xywhn is None:
+        raise RuntimeError("pose prediction missing normalized bbox output")
+    bbox = boxes.xywhn.cpu().numpy()
+    confs = boxes.conf.cpu().numpy() if hasattr(boxes, "conf") and boxes.conf is not None else np.ones((bbox.shape[0],), dtype=np.float32)
+    classes = boxes.cls.cpu().numpy().astype(int) if hasattr(boxes, "cls") and boxes.cls is not None else np.zeros((bbox.shape[0],), dtype=int)
 
-        coords = np.clip(coords, 0.0, 1.0)
-        for i in range(coords.shape[0]):
-            lines.append(_format_obb_line(int(classes[i]), coords[i], float(confs[i])))
-        return lines
+    if hasattr(keypoints, "xyn") and keypoints.xyn is not None:
+        kxy = keypoints.xyn.cpu().numpy()
+    else:
+        raise RuntimeError("pose prediction missing normalized keypoint coordinates")
+    if hasattr(keypoints, "conf") and keypoints.conf is not None:
+        kconf = keypoints.conf.cpu().numpy()
+    else:
+        kconf = np.ones((kxy.shape[0], kxy.shape[1]), dtype=np.float32)
 
-    raise RuntimeError("Model prediction does not expose OBB output; OBB model/weights are required")
+    bbox = np.clip(bbox, 0.0, 1.0)
+    kxy = np.clip(kxy, 0.0, 1.0)
+    for i in range(bbox.shape[0]):
+        kpt = np.concatenate([kxy[i], np.clip(kconf[i][:, None], 0.0, 1.0)], axis=1)
+        lines.append(_format_pose_line(int(classes[i]), bbox[i], kpt, float(confs[i])))
+    return lines
 
 
 def run_inference(config: InferConfig) -> dict:

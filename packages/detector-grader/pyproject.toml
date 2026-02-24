@@ -5,8 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "detector-grader"
 version = "0.1.0"
-description = "OBB-focused run grading tool for detector predictions"
-readme = "README.md"
+description = "Pose-focused run grading tool with hallucination metrics"
 requires-python = ">=3.12"
 dependencies = [
   "pipeline-config",

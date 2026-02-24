@@ -12,21 +12,16 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "augment-checker",
-    "dataset-fetcher",
-    "dataset-generator",
     "detector-grader",
     "detector-infer",
     "detector-optimize",
-    "detector-reviewer",
     "detector-train",
     "dinov3",
     "dinov3-fetcher",
     "gpu-auto-tuner",
     "pipeline-config",
-    "pipeline-profile",
     "pipeline-runtime-utils",
-    "target-labeller",
+    "pose-dataset-scraper",
     "tea-ai",
 ]
 
@@ -59,27 +54,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/96/f0/5eb65b2bb0d09ac6776f2eb54adee6abe8228ea05b20a5ad0e4945de8aac/anyio-4.12.1.tar.gz", hash = "sha256:41cfcc3a4c85d3f05c932da7c26d0201ac36f72abd4435ba90d0464a3ffed703", size = 228685, upload-time = "2026-01-06T11:45:21.246Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/38/0e/27be9fdef66e72d64c0cdc3cc2823101b80585f8119b5c112c2e8f5f7dab/anyio-4.12.1-py3-none-any.whl", hash = "sha256:d405828884fc140aa80a3c667b8beed277f1dfedec42ba031bd6ac3db606ab6c", size = 113592, upload-time = "2026-01-06T11:45:19.497Z" },
-]
-
-[[package]]
-name = "augment-checker"
-version = "0.1.0"
-source = { editable = "packages/augment-checker" }
-dependencies = [
-    { name = "numpy" },
-    { name = "opencv-python-headless" },
-    { name = "pipeline-config" },
-    { name = "pipeline-runtime-utils" },
-    { name = "pyside6" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "numpy", specifier = ">=2.1.0" },
-    { name = "opencv-python-headless", specifier = ">=4.10.0.84" },
-    { name = "pipeline-config", editable = "packages/pipeline-config" },
-    { name = "pipeline-runtime-utils", editable = "packages/pipeline-runtime-utils" },
-    { name = "pyside6", specifier = ">=6.7.0" },
 ]
 
 [[package]]
@@ -268,34 +242,6 @@ wheels = [
 ]
 
 [[package]]
-name = "dataset-fetcher"
-version = "0.1.0"
-source = { editable = "packages/dataset-fetcher" }
-dependencies = [
-    { name = "pipeline-config" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "pipeline-config", editable = "packages/pipeline-config" }]
-
-[[package]]
-name = "dataset-generator"
-version = "0.1.0"
-source = { editable = "packages/dataset-generator" }
-dependencies = [
-    { name = "numpy" },
-    { name = "opencv-python-headless" },
-    { name = "pipeline-config" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "numpy", specifier = ">=2.1.0" },
-    { name = "opencv-python-headless", specifier = ">=4.10.0.84" },
-    { name = "pipeline-config", editable = "packages/pipeline-config" },
-]
-
-[[package]]
 name = "detector-grader"
 version = "0.1.0"
 source = { editable = "packages/detector-grader" }
@@ -350,29 +296,6 @@ requires-dist = [
     { name = "pipeline-config", editable = "packages/pipeline-config" },
     { name = "pipeline-runtime-utils", editable = "packages/pipeline-runtime-utils" },
     { name = "ultralytics", specifier = ">=8.3.0" },
-]
-
-[[package]]
-name = "detector-reviewer"
-version = "0.1.0"
-source = { editable = "packages/detector-reviewer" }
-dependencies = [
-    { name = "detector-grader" },
-    { name = "numpy" },
-    { name = "opencv-python-headless" },
-    { name = "pipeline-config" },
-    { name = "pipeline-runtime-utils" },
-    { name = "pyside6" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "detector-grader", editable = "packages/detector-grader" },
-    { name = "numpy", specifier = ">=2.1.0" },
-    { name = "opencv-python-headless", specifier = ">=4.10.0.84" },
-    { name = "pipeline-config", editable = "packages/pipeline-config" },
-    { name = "pipeline-runtime-utils", editable = "packages/pipeline-runtime-utils" },
-    { name = "pyside6", specifier = ">=6.7.0" },
 ]
 
 [[package]]
@@ -1301,25 +1224,6 @@ version = "0.1.0"
 source = { editable = "packages/pipeline-config" }
 
 [[package]]
-name = "pipeline-profile"
-version = "0.1.0"
-source = { editable = "packages/pipeline-profile" }
-dependencies = [
-    { name = "pipeline-config" },
-    { name = "pipeline-runtime-utils" },
-    { name = "psutil" },
-    { name = "tqdm" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pipeline-config", editable = "packages/pipeline-config" },
-    { name = "pipeline-runtime-utils", editable = "packages/pipeline-runtime-utils" },
-    { name = "psutil", specifier = ">=6.0.0" },
-    { name = "tqdm", specifier = ">=4.66.0" },
-]
-
-[[package]]
 name = "pipeline-runtime-utils"
 version = "0.1.0"
 source = { editable = "packages/pipeline-runtime-utils" }
@@ -1374,6 +1278,23 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/8e/f3/b2a5e720cc56eaa38b4518e63aa577b4bbd60e8b05a00fe43ca051be5879/polars_runtime_32-1.38.1-cp310-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:61e8d73c614b46a00d2f853625a7569a2e4a0999333e876354ac81d1bf1bb5e2", size = 45336615, upload-time = "2026-02-06T18:12:14.074Z" },
     { url = "https://files.pythonhosted.org/packages/f1/8d/ee2e4b7de948090cfb3df37d401c521233daf97bfc54ddec5d61d1d31618/polars_runtime_32-1.38.1-cp310-abi3-win_amd64.whl", hash = "sha256:08c2b3b93509c1141ac97891294ff5c5b0c548a373f583eaaea873a4bf506437", size = 45680732, upload-time = "2026-02-06T18:12:19.097Z" },
     { url = "https://files.pythonhosted.org/packages/bf/18/72c216f4ab0c82b907009668f79183ae029116ff0dd245d56ef58aac48e7/polars_runtime_32-1.38.1-cp310-abi3-win_arm64.whl", hash = "sha256:6d07d0cc832bfe4fb54b6e04218c2c27afcfa6b9498f9f6bbf262a00d58cc7c4", size = 41639413, upload-time = "2026-02-06T18:12:22.044Z" },
+]
+
+[[package]]
+name = "pose-dataset-scraper"
+version = "0.1.0"
+source = { editable = "packages/pose-dataset-scraper" }
+dependencies = [
+    { name = "numpy" },
+    { name = "opencv-python-headless" },
+    { name = "pipeline-config" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "numpy", specifier = ">=2.1.0" },
+    { name = "opencv-python-headless", specifier = ">=4.10.0.84" },
+    { name = "pipeline-config", editable = "packages/pipeline-config" },
 ]
 
 [[package]]
@@ -1521,54 +1442,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f3/91/9c6ee907786a473bf81c5f53cf703ba0957b23ab84c264080fb5a450416f/pyparsing-3.3.2.tar.gz", hash = "sha256:c777f4d763f140633dcb6d8a3eda953bf7a214dc4eff598413c070bcdc117cbc", size = 6851574, upload-time = "2026-01-21T03:57:59.36Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/10/bd/c038d7cc38edc1aa5bf91ab8068b63d4308c66c4c8bb3cbba7dfbc049f9c/pyparsing-3.3.2-py3-none-any.whl", hash = "sha256:850ba148bd908d7e2411587e247a1e4f0327839c40e2e5e6d05a007ecc69911d", size = 122781, upload-time = "2026-01-21T03:57:55.912Z" },
-]
-
-[[package]]
-name = "pyside6"
-version = "6.10.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pyside6-addons" },
-    { name = "pyside6-essentials" },
-    { name = "shiboken6" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/35/0f/5736889fc850794623692cb369e295a994175e51295fa52134626f486296/pyside6-6.10.2-cp39-abi3-macosx_13_0_universal2.whl", hash = "sha256:4b084293caa7845d0064aaf6af258e0f7caae03a14a33537d0a552131afddaf0", size = 563185, upload-time = "2026-02-02T08:50:47.161Z" },
-    { url = "https://files.pythonhosted.org/packages/35/d3/ab5cd2fac3d34469c7376e0cd18eec92905dbe44748c70bda7699a2a7206/pyside6-6.10.2-cp39-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:1b89ce8558d4b4f35b85bff1db90d680912e4d3ce9e79ff804d6fef1d1a151ef", size = 563357, upload-time = "2026-02-02T08:50:48.919Z" },
-    { url = "https://files.pythonhosted.org/packages/ea/8c/55bbd50c138c8dc12edc9f25e9d94760a33e574905468e98dff399094baa/pyside6-6.10.2-cp39-abi3-manylinux_2_39_aarch64.whl", hash = "sha256:0439f5e9b10ebe6177981bac9e219096ec970ac6ec215bef055279802ba50601", size = 563357, upload-time = "2026-02-02T08:50:50.077Z" },
-    { url = "https://files.pythonhosted.org/packages/4f/d4/673b8112b4a260377f760be835c4e357163fdaf68a56a1aec59aeb8e584b/pyside6-6.10.2-cp39-abi3-win_amd64.whl", hash = "sha256:032bad6b18a17fcbf4dddd0397f49b07f8aae7f1a45b7e4de7037bf7fd6e0edf", size = 569554, upload-time = "2026-02-02T08:50:51.147Z" },
-    { url = "https://files.pythonhosted.org/packages/14/95/bda648fcccf61fe58cb417284716ae30acdddd44f7d4cbad6eea4ccaa872/pyside6-6.10.2-cp39-abi3-win_arm64.whl", hash = "sha256:65a59ad0bc92525639e3268d590948ce07a80ee97b55e7a9200db41d493cac31", size = 553828, upload-time = "2026-02-02T08:50:52.244Z" },
-]
-
-[[package]]
-name = "pyside6-addons"
-version = "6.10.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pyside6-essentials" },
-    { name = "shiboken6" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/61/06/c283567628ffa2cefc3c72374ad607f1dfc9842a03db65f1347b9ae52bee/pyside6_addons-6.10.2-cp39-abi3-macosx_13_0_universal2.whl", hash = "sha256:0de7d0c9535e17d5e3b634b61314a1867f3b0f6d35c3d7cdc99efc353192faff", size = 322745605, upload-time = "2026-02-02T08:39:19.929Z" },
-    { url = "https://files.pythonhosted.org/packages/a5/69/e1ab8c756fd3984b1fd7b186446227f524f6b561160bfbfdba8874b4709a/pyside6_addons-6.10.2-cp39-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:030a851163b51dbf0063be59e9ddb6a9e760bde89a28e461ccc81a224d286eaf", size = 170718434, upload-time = "2026-02-02T08:40:55.989Z" },
-    { url = "https://files.pythonhosted.org/packages/df/e5/18ba86ba86d1231c486d36f9accfe862ed6eb52ca0b698aeaf6e837a87ca/pyside6_addons-6.10.2-cp39-abi3-manylinux_2_39_aarch64.whl", hash = "sha256:fcee0373e3fd7b98f014094e5e37b4a39e4de7c5a47c13f654a7d557d4a426ad", size = 166423836, upload-time = "2026-02-02T08:42:44.918Z" },
-    { url = "https://files.pythonhosted.org/packages/99/13/503bec9201881968c372cb634069535e80aec2489f3907d676e151a1023f/pyside6_addons-6.10.2-cp39-abi3-win_amd64.whl", hash = "sha256:c20150068525a17494f3b6576c5d61c417cf9a5870659e29f5ebd83cd20a78ea", size = 164712775, upload-time = "2026-02-02T08:43:23.729Z" },
-    { url = "https://files.pythonhosted.org/packages/b6/39/44d6710b4dd18d745077b5fc6ded4ba6f32987a6e49c5834529e50f02155/pyside6_addons-6.10.2-cp39-abi3-win_arm64.whl", hash = "sha256:3d18db739b46946ba7b722d8ad4cc2097135033aa6ea57076e64d591e6a345f3", size = 34041396, upload-time = "2026-02-02T08:43:31.246Z" },
-]
-
-[[package]]
-name = "pyside6-essentials"
-version = "6.10.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "shiboken6" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/1d/2e/5f18a77f5e0bd730bacec93a690d0ef3c96a9711d213653eacecbf241b8d/pyside6_essentials-6.10.2-cp39-abi3-macosx_13_0_universal2.whl", hash = "sha256:1dee2cb9803ff135f881dadeb5c0edcef793d1ec4f8a9140a1348cecb71074e1", size = 105913067, upload-time = "2026-02-02T08:45:37.508Z" },
-    { url = "https://files.pythonhosted.org/packages/99/20/3a6ca95052e1744b5a3eba164e2dd451d358a3dcaf78179de4b45c8e3f47/pyside6_essentials-6.10.2-cp39-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:660aea45bfa36f1e06f799b934c2a7df963bd31abc5083e8bb8a5bfaef45686b", size = 77027153, upload-time = "2026-02-02T08:45:53.09Z" },
-    { url = "https://files.pythonhosted.org/packages/93/a6/6073e4ddc2a5c7b3941606e4bc8bbaadcf0737f57450620b0793041c8d22/pyside6_essentials-6.10.2-cp39-abi3-manylinux_2_39_aarch64.whl", hash = "sha256:c2b028e4c6f8047a02c31f373408e23b4eedfd405f56c6aba8d0525c29472835", size = 76114242, upload-time = "2026-02-02T08:46:07.184Z" },
-    { url = "https://files.pythonhosted.org/packages/22/a8/616bbbd009efd3e17bf9a2db09d90c6764c010565cd2bdea2a240bfd18f7/pyside6_essentials-6.10.2-cp39-abi3-win_amd64.whl", hash = "sha256:0741018c2b6395038cad4c41775cfae3f13a409e87995ac9f7d89e5b1fb6b22a", size = 74546490, upload-time = "2026-02-02T08:46:26.395Z" },
-    { url = "https://files.pythonhosted.org/packages/b9/f9/c9757a984c4ffb6d12fab69e966d95dfc862a5d44e12b7900f3a03780b76/pyside6_essentials-6.10.2-cp39-abi3-win_arm64.whl", hash = "sha256:db5f4913648bb6afddb8b347edae151ee2378f12bceb03c8b2515a530a4b38d9", size = 55258626, upload-time = "2026-02-02T08:46:36.788Z" },
 ]
 
 [[package]]
@@ -1876,18 +1749,6 @@ wheels = [
 ]
 
 [[package]]
-name = "shiboken6"
-version = "6.10.2"
-source = { registry = "https://pypi.org/simple" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/fb/38/3912eb08a3b865b5fcdb4bdce8076cacc211986cee587f5cb62e637791af/shiboken6-6.10.2-cp39-abi3-macosx_13_0_universal2.whl", hash = "sha256:3bd4e94e9a3c8c1fa8362fd752d399ef39265d5264e4e37bae61cdaa2a00c8c7", size = 479829, upload-time = "2026-02-02T08:50:22.495Z" },
-    { url = "https://files.pythonhosted.org/packages/52/88/292e0576489c46624ab419ee284ac5a59ae10e2eb34a58b6abca51dfd290/shiboken6-6.10.2-cp39-abi3-manylinux_2_34_x86_64.whl", hash = "sha256:ace0790032d9cb0adda644b94ee28d59410180d9773643bb6cf8438c361987ad", size = 273052, upload-time = "2026-02-02T08:50:24.539Z" },
-    { url = "https://files.pythonhosted.org/packages/06/c2/03d44d34e8264e1f25671677fece95b414c70fd85dcc2be8d5e821ee2628/shiboken6-6.10.2-cp39-abi3-manylinux_2_39_aarch64.whl", hash = "sha256:f74d3ed1f92658077d0630c39e694eb043aeb1d830a5d275176c45d07147427f", size = 269868, upload-time = "2026-02-02T08:50:25.662Z" },
-    { url = "https://files.pythonhosted.org/packages/71/5d/5ca52c0ef86b3d01572131b6709bd531a080995f7e680720e9424328ce1d/shiboken6-6.10.2-cp39-abi3-win_amd64.whl", hash = "sha256:10f3c8c5e1b8bee779346f21c10dbc14cff068f0b0b4e62420c82a6bf36ac2e7", size = 1222052, upload-time = "2026-02-02T08:50:27.502Z" },
-    { url = "https://files.pythonhosted.org/packages/46/52/421fd378313c89b67ee7d584bf4e9ec088fa1804891b8d74e02b16703457/shiboken6-6.10.2-cp39-abi3-win_arm64.whl", hash = "sha256:20c671645d70835af212ee05df60361d734c5305edb2746e9875c6a31283f963", size = 1784089, upload-time = "2026-02-02T08:50:29.069Z" },
-]
-
-[[package]]
 name = "six"
 version = "1.17.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1918,32 +1779,13 @@ wheels = [
 ]
 
 [[package]]
-name = "target-labeller"
-version = "0.1.0"
-source = { editable = "packages/target-labeller" }
-dependencies = [
-    { name = "pipeline-config" },
-    { name = "pyside6" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pipeline-config", editable = "packages/pipeline-config" },
-    { name = "pyside6", specifier = ">=6.7.0" },
-]
-
-[[package]]
 name = "tea-ai"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "augment-checker" },
-    { name = "dataset-fetcher" },
-    { name = "dataset-generator" },
     { name = "detector-grader" },
     { name = "detector-infer" },
     { name = "detector-optimize" },
-    { name = "detector-reviewer" },
     { name = "detector-train" },
     { name = "dinov3" },
     { name = "dinov3-fetcher" },
@@ -1953,23 +1795,18 @@ dependencies = [
     { name = "onnxruntime-gpu" },
     { name = "onnxslim" },
     { name = "pipeline-config" },
-    { name = "pipeline-profile" },
     { name = "pipeline-runtime-utils" },
+    { name = "pose-dataset-scraper" },
     { name = "pytest" },
-    { name = "target-labeller" },
     { name = "tensorrt-cu12" },
     { name = "tqdm" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "augment-checker", editable = "packages/augment-checker" },
-    { name = "dataset-fetcher", editable = "packages/dataset-fetcher" },
-    { name = "dataset-generator", editable = "packages/dataset-generator" },
     { name = "detector-grader", editable = "packages/detector-grader" },
     { name = "detector-infer", editable = "packages/detector-infer" },
     { name = "detector-optimize", editable = "packages/detector-optimize" },
-    { name = "detector-reviewer", editable = "packages/detector-reviewer" },
     { name = "detector-train", editable = "packages/detector-train" },
     { name = "dinov3", editable = "packages/dinov3" },
     { name = "dinov3-fetcher", editable = "packages/dinov3-fetcher" },
@@ -1979,10 +1816,9 @@ requires-dist = [
     { name = "onnxruntime-gpu", specifier = ">=1.24.2" },
     { name = "onnxslim", specifier = ">=0.1.85" },
     { name = "pipeline-config", editable = "packages/pipeline-config" },
-    { name = "pipeline-profile", editable = "packages/pipeline-profile" },
     { name = "pipeline-runtime-utils", editable = "packages/pipeline-runtime-utils" },
+    { name = "pose-dataset-scraper", editable = "packages/pose-dataset-scraper" },
     { name = "pytest", specifier = ">=9.0.2" },
-    { name = "target-labeller", editable = "packages/target-labeller" },
     { name = "tensorrt-cu12", specifier = ">=10.15.1.29" },
     { name = "tqdm", specifier = ">=4.66.0" },
 ]

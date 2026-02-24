@@ -24,8 +24,15 @@ def _find_first(paths: list[Path]) -> Path | None:
     return None
 
 
+def _assert_pose_model(model: YOLO, weights: Path) -> None:
+    task = str(getattr(model, "task", "")).strip().lower()
+    if task != "pose":
+        raise RuntimeError(f"weights are not a pose model (task={task!r}): {weights}")
+
+
 def _export_onnx(cfg: OptimizeConfig, *, device: str) -> Path:
     model = YOLO(str(cfg.weights))
+    _assert_pose_model(model, cfg.weights)
     parent_before = {p.resolve() for p in cfg.weights.parent.glob("*.onnx")}
     result = model.export(
         format="onnx",
@@ -103,6 +110,7 @@ def _device_supports_tensorrt(device: str) -> bool:
 
 def _build_engine_with_ultralytics(*, cfg: OptimizeConfig) -> tuple[Path, dict[str, Any]]:
     model = YOLO(str(cfg.weights))
+    _assert_pose_model(model, cfg.weights)
     parent_before = {p.resolve() for p in cfg.weights.parent.glob("*.engine")}
     result = model.export(
         format="engine",

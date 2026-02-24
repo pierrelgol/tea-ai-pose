@@ -16,7 +16,7 @@ def _fmt_float(v: float | None, digits: int = 4) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Grade detector runs from strict OBB geometry quality")
+    parser = argparse.ArgumentParser(description="Grade pose detector runs with hallucination metrics")
     parser.add_argument("--config", type=Path, default=Path("config.json"))
     args = parser.parse_args()
 
@@ -52,9 +52,8 @@ def main() -> None:
             conf_threshold=float(gc.get("conf_threshold", 0.25)),
             calibrate_confidence=bool(gc.get("calibrate_confidence", True)),
             infer_iou_threshold=float(gc.get("infer_iou_threshold", 0.7)),
-            match_iou_threshold=float(gc.get("match_iou_threshold", 0.5)),
+            match_oks_threshold=float(gc.get("match_oks_threshold", 0.5)),
             weights_json=Path(str(gc["weights_json"])) if gc.get("weights_json") else None,
-            strict_obb=bool(gc.get("strict_obb", True)),
             max_samples=None if gc.get("max_samples") is None else int(gc.get("max_samples")),
             seed=int(shared.run["seed"]),
             calibration_candidates=(
@@ -62,6 +61,8 @@ def main() -> None:
                 if gc.get("calibration_candidates") is None
                 else [float(v) for v in gc.get("calibration_candidates")]
             ),
+            fpr_negative_set_enabled=bool(gc.get("fpr_negative_set_enabled", True)),
+            fpr_threshold=float(gc.get("fpr_threshold", 0.05)),
         )
     )
 
@@ -90,7 +91,7 @@ def main() -> None:
     print(f"- run_precision_proxy: {_fmt_float(run_det.get('precision_proxy'))}")
     print(f"- run_recall_proxy: {_fmt_float(run_det.get('recall_proxy'))}")
     print(f"- run_miss_rate_proxy: {_fmt_float(run_det.get('miss_rate_proxy'))}")
-    print(f"- run_class_match_rate: {_fmt_float(run_det.get('class_match_rate'))}")
+    print(f"- fpr_negative: {_fmt_float(result.get('hallucination', {}).get('fpr_negative'))}")
     print("")
     print("Artifacts")
     print(f"- summary_json: {result['reports']['summary_json']}")

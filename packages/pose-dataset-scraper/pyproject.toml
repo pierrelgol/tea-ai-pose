@@ -3,10 +3,9 @@ requires = ["hatchling>=1.24.2"]
 build-backend = "hatchling.build"
 
 [project]
-name = "dataset-generator"
+name = "pose-dataset-scraper"
 version = "0.1.0"
-description = "Dataset generation module for tea-ai"
-readme = "README.md"
+description = "License-safe human pose dataset scraping and curation for TEA-AI"
 requires-python = ">=3.12"
 dependencies = [
   "pipeline-config",
@@ -15,7 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-dataset-generator = "dataset_generator.cli:main"
+pose-dataset-scraper = "pose_dataset_scraper.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/dataset_generator"]
+packages = ["src/pose_dataset_scraper"]

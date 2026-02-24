@@ -16,13 +16,12 @@ import numpy as np
 from .config import TrainConfig
 from .data_yaml import write_data_yaml
 from .dino_viz import save_dino_visualizations
-from .dino_trainer import DinoDistillConfig, DinoOBBTrainer
+from .dino_trainer import DinoDistillConfig, DinoPoseTrainer
 from .wandb_logger import finish_wandb, init_wandb, log_wandb
 from pipeline_runtime_utils import (
-    corners_norm_to_px,
     index_ground_truth,
-    load_obb_labels,
-    load_prediction_labels,
+    load_pose_labels,
+    load_prediction_pose_labels,
     resolve_device,
 )
 
@@ -150,12 +149,12 @@ def _canonical_key(raw_key: str) -> str | None:
     if "metrics/map50" in k:
         return "val/map50"
 
+    if "train/pose_loss" in k or k.endswith("pose_loss"):
+        return "train/loss_pose"
+    if "train/kobj_loss" in k or k.endswith("kobj_loss"):
+        return "train/loss_kobj"
     if "train/box_loss" in k or k.endswith("box_loss"):
         return "train/loss_box"
-    if "train/cls_loss" in k or k.endswith("cls_loss"):
-        return "train/loss_cls"
-    if "train/dfl_loss" in k or k.endswith("dfl_loss"):
-        return "train/loss_dfl"
 
     if k in {"lr", "train/lr"} or "lr/pg0" in k:
         return "train/lr"
@@ -194,13 +193,13 @@ def _extract_epoch_metrics(trainer) -> dict[str, float]:
                 if box is not None:
                     out["train/loss_box"] = box
             if arr.size > 1:
-                cls = _to_float(arr[1])
-                if cls is not None:
-                    out["train/loss_cls"] = cls
+                pose = _to_float(arr[1])
+                if pose is not None:
+                    out["train/loss_pose"] = pose
             if arr.size > 2:
-                dfl = _to_float(arr[2])
-                if dfl is not None:
-                    out["train/loss_dfl"] = dfl
+                kobj = _to_float(arr[2])
+                if kobj is not None:
+                    out["train/loss_kobj"] = kobj
         except Exception:
             pass
 
@@ -213,7 +212,7 @@ def _extract_epoch_metrics(trainer) -> dict[str, float]:
         except Exception:
             pass
 
-    loss_keys = ("train/loss_box", "train/loss_cls", "train/loss_dfl")
+    loss_keys = ("train/loss_box", "train/loss_pose", "train/loss_kobj")
     losses = [out[k] for k in loss_keys if k in out]
     if losses:
         out["train/loss_total"] = float(sum(losses))
@@ -265,7 +264,7 @@ def _extract_last_metrics(results_csv: Path) -> dict[str, float]:
     if speed_vals:
         out["train/speed_ms_per_img"] = float(sum(speed_vals))
 
-    loss_keys = ("train/loss_box", "train/loss_cls", "train/loss_dfl")
+    loss_keys = ("train/loss_box", "train/loss_pose", "train/loss_kobj")
     losses = [out[k] for k in loss_keys if k in out]
     if losses:
         out["train/loss_total"] = float(sum(losses))
@@ -306,8 +305,7 @@ def _run_periodic_eval(
             device=device,
             conf_threshold=config.eval_conf_threshold,
             infer_iou_threshold=config.eval_iou_threshold,
-            match_iou_threshold=config.eval_iou_threshold,
-            strict_obb=True,
+            match_oks_threshold=config.eval_iou_threshold,
             seed=config.seed,
         )
     )
@@ -321,8 +319,8 @@ def _run_periodic_eval(
                 "eval/precision": row.get("precision"),
                 "eval/recall": row.get("recall"),
                 "eval/miss_rate": row.get("miss_rate"),
-                "eval/mean_iou": row.get("mean_iou"),
-                "eval/mean_center_drift_px": row.get("mean_center_drift_px"),
+                "eval/mean_oks": row.get("mean_oks"),
+                "eval/mean_keypoint_error_px": row.get("mean_keypoint_error_px"),
                 "eval/run_grade_0_100": result["aggregate"].get("run_grade_0_100"),
             },
             step=epoch,
@@ -350,14 +348,23 @@ def _draw_label_set(
     out = image_bgr.copy()
     h, w = out.shape[:2]
     for idx, label in enumerate(labels):
-        px = corners_norm_to_px(label.corners_norm, w, h).astype(np.int32)
-        cv2.polylines(out, [px.reshape((-1, 1, 2))], True, color, 2)
-        x = int(np.min(px[:, 0]))
-        y = int(np.min(px[:, 1])) - 6
+        cx, cy, bw, bh = [float(v) for v in label.bbox_xywh_norm]
+        x1 = int(max(0, min(w - 1, round((cx - bw * 0.5) * w))))
+        y1 = int(max(0, min(h - 1, round((cy - bh * 0.5) * h))))
+        x2 = int(max(0, min(w - 1, round((cx + bw * 0.5) * w))))
+        y2 = int(max(0, min(h - 1, round((cy + bh * 0.5) * h))))
+        cv2.rectangle(out, (x1, y1), (x2, y2), color, 2)
+        for kp in label.keypoints_norm:
+            x = int(max(0, min(w - 1, round(float(kp[0]) * w))))
+            y = int(max(0, min(h - 1, round(float(kp[1]) * h))))
+            vis = float(kp[2]) if kp.shape[0] > 2 else 1.0
+            if vis <= 0:
+                continue
+            cv2.circle(out, (x, y), 2, color, -1)
         cv2.putText(
             out,
             f"{tag} c{int(label.class_id)} #{idx}",
-            (max(2, x), max(16, y)),
+            (max(2, x1), max(16, y1 - 6)),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.45,
             color,
@@ -400,7 +407,7 @@ def _write_eval_visual_artifacts(
         return {"enabled": False, "reason": f"image missing for sample: {rec.stem}"}
 
     gt = gt_cache.get(rec.gt_label_path, []) if rec.gt_label_path else []
-    preds = load_prediction_labels(
+    preds = load_prediction_pose_labels(
         predictions_root=predictions_root,
         model_name=str(model_key),
         split=rec.split,
@@ -554,7 +561,7 @@ def train_detector(config: TrainConfig) -> dict[str, Any]:
             if rec.gt_label_path is None:
                 continue
             if rec.gt_label_path not in eval_viz_gt_cache:
-                eval_viz_gt_cache[rec.gt_label_path] = load_obb_labels(
+                eval_viz_gt_cache[rec.gt_label_path] = load_pose_labels(
                     rec.gt_label_path, is_prediction=False, conf_threshold=0.0
                 )
             eval_viz_gt_overlay_cache[rec.stem] = _draw_label_set(
@@ -759,7 +766,7 @@ def train_detector(config: TrainConfig) -> dict[str, Any]:
 
         def _make_trainer_factory():
             return partial(
-                DinoOBBTrainer,
+                DinoPoseTrainer,
                 dino_cfg=DinoDistillConfig(
                     dino_root=config.dino_root,
                     stage_a_epochs=stage_a_epochs,
@@ -780,10 +787,10 @@ def train_detector(config: TrainConfig) -> dict[str, Any]:
             )
         model = YOLO(config.model)
         model_task = str(getattr(model, "task", "")).strip().lower()
-        if model_task != "obb":
+        if model_task != "pose":
             raise RuntimeError(
-                f"model is not an OBB model (task={model_task!r}): {config.model}. "
-                "Use an OBB checkpoint."
+                f"model is not a pose model (task={model_task!r}): {config.model}. "
+                "Use a pose checkpoint."
             )
         model.add_callback("on_fit_epoch_end", _on_fit_epoch_end)
         resolved_batch = int(train_kwargs["batch"])

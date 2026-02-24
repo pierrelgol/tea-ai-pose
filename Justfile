@@ -45,23 +45,11 @@ fclean: clean
 
 fetch-dataset: venv
     @uv sync --all-packages
-    @uv run dataset-fetcher --config {{config}}
+    @uv run pose-dataset-scraper --config {{config}} --action all
 
 fetch-dinov3: venv
     @uv sync --all-packages
     @uv run dinov3-fetcher --config {{config}}
-
-label-targets: venv
-    @uv sync --all-packages
-    @uv run target-labeller --config {{config}}
-
-generate-dataset: venv
-    @uv sync --all-packages
-    @uv run dataset-generator --config {{config}}
-
-check-dataset: venv
-    @uv sync --all-packages
-    @uv run augment-checker --config {{config}}
 
 train: venv
     @uv sync --all-packages
@@ -79,11 +67,3 @@ eval: venv
 optimize: venv
     @uv sync --all-packages
     @uv run detector-optimize --config {{config}}
-
-review: venv
-    @uv sync --all-packages
-    @uv run detector-reviewer --config {{config}}
-
-profile-pipeline: venv
-    @uv sync --all-packages
-    @uv run pipeline-profile --config {{config}}

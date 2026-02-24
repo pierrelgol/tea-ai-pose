@@ -13,12 +13,9 @@ def _minimal_config_with_optional_sections() -> dict:
         "paths": {
             "dataset_root": "dataset",
             "artifacts_root": "artifacts/models",
-            "configs_root": "configs/datasets",
-            "targets_source_root": "targets",
         },
-        "run": {"dataset": "coco1024", "model": "m", "model_key": "k", "run_id": "r", "seed": 42},
+        "run": {"dataset": "coco1024", "model": "m", "model_key": "k", "run_id": "r", "seed": 42, "task": "pose"},
         "dataset": {"name": "coco1024", "augmented_subdir": "augmented", "splits": ["train", "val"]},
-        "generator": {"seed": 42},
         "tuner": {
             "enabled": True,
             "dataset": "coco128",
@@ -65,23 +62,9 @@ def _minimal_config_with_optional_sections() -> dict:
         },
         "grade": {
             "splits": ["val"], "imgsz": 64, "device": "cpu", "conf_threshold": 0.25, "infer_iou_threshold": 0.7,
-            "match_iou_threshold": 0.5, "strict_obb": True, "max_samples": None, "calibrate_confidence": False,
+            "match_oks_threshold": 0.5, "max_samples": None, "calibrate_confidence": False,
+            "fpr_negative_set_enabled": True, "fpr_threshold": 0.05,
             "calibration_candidates": None, "weights_json": None, "run_inference": False
-        },
-        "review": {"split": "val", "conf_threshold": 0.25},
-        "checks": {"outlier_threshold_px": 2.0, "debug_overlays_per_split": 10, "gui": False, "seed": 42},
-        "profile": {
-            "dataset": "coco128",
-            "train_epochs": 50,
-            "enable_gpu_sampling": False,
-            "baseline_run": "profile-20260223-193528",
-            "regression_gate": {
-                "min_run_grade_delta": 0.0,
-                "max_precision_drop": 0.02,
-                "max_recall_drop": 0.02,
-                "max_miss_rate_increase": 0.02,
-                "max_total_duration_increase_pct": 5.0,
-            },
         },
     }
 

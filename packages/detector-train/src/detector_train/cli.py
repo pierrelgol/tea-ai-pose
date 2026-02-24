@@ -13,7 +13,7 @@ from pipeline_runtime_utils import resolve_device
 from .config import TrainConfig
 from .trainer import train_detector
 
-HF_DEFAULT_ALIAS = "hf-openvision-yolo26-n-obb"
+HF_DEFAULT_ALIAS = "hf-openvision-yolo26-n-pose"
 
 
 def _resolve_model_arg(model_arg: str) -> str:
@@ -24,13 +24,13 @@ def _resolve_model_arg(model_arg: str) -> str:
 
         return str(
             hf_hub_download(
-                repo_id="openvision/yolo26-n-obb",
+                repo_id="openvision/yolo26-n-pose",
                 filename="model.pt",
             )
         )
     except Exception as exc:
         raise RuntimeError(
-            "failed to resolve default HF OBB model; set run.model to a local OBB .pt path"
+            "failed to resolve default HF pose model; set run.model to a local pose .pt path"
         ) from exc
 
 

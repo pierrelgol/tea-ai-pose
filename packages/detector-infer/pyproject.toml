@@ -6,7 +6,6 @@ build-backend = "hatchling.build"
 name = "detector-infer"
 version = "0.1.0"
 description = "Focused detector inference module exporting YOLO predictions"
-readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
   "pipeline-config",

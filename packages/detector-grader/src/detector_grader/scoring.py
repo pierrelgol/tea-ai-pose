@@ -6,270 +6,80 @@ from typing import Any
 import numpy as np
 
 from .data import Label
-from .geometry import (
-    angle_diff_deg,
-    edge_lengths,
-    polygon_area,
-    polygon_center_drift_px,
-    polygon_iou,
-    principal_angle_deg,
-    reorder_corners_to_best,
-)
 
 
 @dataclass(slots=True)
 class ScoreWeights:
-    iou: float = 0.32
-    corner: float = 0.20
-    angle: float = 0.24
-    center: float = 0.14
-    shape: float = 0.10
-
+    oks: float = 0.75
+    box_iou: float = 0.25
     fn_penalty: float = 0.30
     fp_penalty: float = 0.18
-    containment_miss_penalty: float = 0.22
-    containment_outside_penalty: float = 0.08
-    tau_corner_px: float = 20.0
-    tau_center_px: float = 20.0
-    iou_gamma: float = 1.2
 
     def normalized(self) -> "ScoreWeights":
-        s = self.iou + self.corner + self.angle + self.center + self.shape
-        if s <= 0:
-            raise ValueError("invalid weights sum <= 0")
+        total = self.oks + self.box_iou
+        if total <= 0:
+            raise ValueError("invalid score weights")
         return ScoreWeights(
-            iou=self.iou / s,
-            corner=self.corner / s,
-            angle=self.angle / s,
-            center=self.center / s,
-            shape=self.shape / s,
+            oks=self.oks / total,
+            box_iou=self.box_iou / total,
             fn_penalty=self.fn_penalty,
             fp_penalty=self.fp_penalty,
-            containment_miss_penalty=self.containment_miss_penalty,
-            containment_outside_penalty=self.containment_outside_penalty,
-            tau_corner_px=self.tau_corner_px,
-            tau_center_px=self.tau_center_px,
-            iou_gamma=self.iou_gamma,
         )
 
 
-@dataclass(slots=True)
-class Match:
-    gt_idx: int
-    pred_idx: int
-    iou: float
-    quality: float
+def _xywh_to_xyxy(box: np.ndarray) -> np.ndarray:
+    cx, cy, w, h = [float(v) for v in box]
+    return np.array([cx - 0.5 * w, cy - 0.5 * h, cx + 0.5 * w, cy + 0.5 * h], dtype=np.float32)
 
 
-@dataclass(slots=True)
-class MatchComponents:
-    iou_score: float
-    corner_score: float
-    angle_score: float
-    center_score: float
-    shape_score: float
-    weighted_score: float
-
-
-@dataclass(slots=True)
-class MatchDiagnostics:
-    iou: float
-    gt_area_missed_ratio: float
-    pred_outside_ratio: float
-    corner_error_px: float
-    angle_error_deg: float
-    center_error_px: float
-    center_error_norm: float
-    area_ratio: float
-    abs_log_area_ratio: float
-    edge_rel_error: float
-    confidence: float
-    class_match: int
-
-
-def _poly_px(label: Label, w: int, h: int) -> np.ndarray:
-    return (label.corners_norm * np.array([[w, h]], dtype=np.float32)).astype(np.float32)
-
-
-def _greedy_match(
-    gt_polys: list[np.ndarray],
-    pred_polys: list[np.ndarray],
-    gt_class_ids: list[int],
-    pred_class_ids: list[int],
-    iou_threshold: float,
-) -> tuple[list[Match], list[int], list[int]]:
-    candidates: list[tuple[float, float, int, int]] = []
-    for gi, g in enumerate(gt_polys):
-        g_center = np.mean(g, axis=0)
-        g_diag = float(np.linalg.norm(np.max(g, axis=0) - np.min(g, axis=0)))
-        g_angle = principal_angle_deg(g)
-        for pi, p in enumerate(pred_polys):
-            iou = polygon_iou(g, p)
-            if iou >= iou_threshold:
-                p_reordered = reorder_corners_to_best(g, p)
-                p_center = np.mean(p_reordered, axis=0)
-                center_err = float(np.linalg.norm(g_center - p_center)) / max(g_diag, 1e-6)
-                center_score = float(np.exp(-center_err / 0.20))
-                angle_err = angle_diff_deg(g_angle, principal_angle_deg(p_reordered))
-                angle_score = float(np.clip(1.0 - (angle_err / 90.0), 0.0, 1.0))
-                class_score = 1.0 if gt_class_ids[gi] == pred_class_ids[pi] else 0.7
-                quality = float((iou ** 1.5) * center_score * (0.7 + 0.3 * angle_score) * class_score)
-                candidates.append((quality, iou, gi, pi))
-    candidates.sort(key=lambda x: (-x[0], -x[1], x[2], x[3]))
-    used_g: set[int] = set()
-    used_p: set[int] = set()
-    matches: list[Match] = []
-    for quality, iou, gi, pi in candidates:
-        if gi in used_g or pi in used_p:
-            continue
-        used_g.add(gi)
-        used_p.add(pi)
-        matches.append(Match(gt_idx=gi, pred_idx=pi, iou=iou, quality=quality))
-    unmatched_g = [i for i in range(len(gt_polys)) if i not in used_g]
-    unmatched_p = [i for i in range(len(pred_polys)) if i not in used_p]
-    return matches, unmatched_g, unmatched_p
-
-
-def _safe_exp_score(err: float, tau: float) -> float:
-    if tau <= 1e-9:
+def _bbox_iou(a_xywh: np.ndarray, b_xywh: np.ndarray) -> float:
+    ax1, ay1, ax2, ay2 = _xywh_to_xyxy(a_xywh)
+    bx1, by1, bx2, by2 = _xywh_to_xyxy(b_xywh)
+    ix1 = max(ax1, bx1)
+    iy1 = max(ay1, by1)
+    ix2 = min(ax2, bx2)
+    iy2 = min(ay2, by2)
+    iw = max(0.0, ix2 - ix1)
+    ih = max(0.0, iy2 - iy1)
+    inter = iw * ih
+    a_area = max(0.0, (ax2 - ax1)) * max(0.0, (ay2 - ay1))
+    b_area = max(0.0, (bx2 - bx1)) * max(0.0, (by2 - by1))
+    union = a_area + b_area - inter
+    if union <= 0:
         return 0.0
-    return float(np.exp(-max(0.0, err) / tau))
+    return float(inter / union)
 
 
-def _iou_emphasis_score(iou: float, gamma: float) -> float:
-    if gamma <= 1e-9:
-        return float(np.clip(iou, 0.0, 1.0))
-    return float(np.clip(iou, 0.0, 1.0) ** gamma)
+def _pose_oks(gt: Label, pred: Label, image_w: int, image_h: int) -> tuple[float, float]:
+    gt_k = gt.keypoints_norm
+    pr_k = pred.keypoints_norm
+    n = min(int(gt_k.shape[0]), int(pr_k.shape[0]))
+    if n <= 0:
+        return 0.0, 0.0
 
-
-def _shape_score(gt: np.ndarray, pred: np.ndarray) -> float:
-    gt_l = edge_lengths(gt)
-    pr_l = edge_lengths(pred)
-    gt_l = gt_l / max(float(np.mean(gt_l)), 1e-9)
-    pr_l = pr_l / max(float(np.mean(pr_l)), 1e-9)
-    edge_consistency = float(np.mean(np.clip(1.0 - np.abs(gt_l - pr_l), 0.0, 1.0)))
-
-    ga = polygon_area(gt)
-    pa = polygon_area(pred)
-    area_ratio = min(ga, pa) / max(ga, pa, 1e-9)
-    return float(np.clip(0.5 * edge_consistency + 0.5 * area_ratio, 0.0, 1.0))
-
-
-def _edge_rel_error(gt: np.ndarray, pred: np.ndarray) -> float:
-    gt_l = edge_lengths(gt)
-    pr_l = edge_lengths(pred)
-    gt_l = gt_l / max(float(np.mean(gt_l)), 1e-9)
-    pr_l = pr_l / max(float(np.mean(pr_l)), 1e-9)
-    return float(np.mean(np.abs(gt_l - pr_l)))
-
-
-def _orientation_reliability(poly: np.ndarray) -> float:
-    lengths = edge_lengths(poly)
-    longest = float(np.max(lengths))
-    shortest = float(max(np.min(lengths), 1e-9))
-    ratio = longest / shortest
-    return float(np.clip((ratio - 1.0) / 0.35, 0.0, 1.0))
-
-
-def _stat_or_none(vals: list[float], fn: str) -> float | None:
-    if not vals:
-        return None
-    arr = np.array(vals, dtype=np.float32)
-    if fn == "mean":
-        return float(np.mean(arr))
-    if fn == "median":
-        return float(np.median(arr))
-    if fn == "p90":
-        return float(np.percentile(arr, 90))
-    if fn == "p95":
-        return float(np.percentile(arr, 95))
-    raise ValueError(f"unsupported stat fn: {fn}")
-
-
-def compute_match_components(gt: np.ndarray, pred: np.ndarray, weights: ScoreWeights) -> MatchComponents:
-    pred_reordered = reorder_corners_to_best(gt, pred)
-
-    iou_raw = float(np.clip(polygon_iou(gt, pred_reordered), 0.0, 1.0))
-    iou_score = _iou_emphasis_score(iou_raw, weights.iou_gamma)
-
-    corner_err = float(np.mean(np.linalg.norm(gt - pred_reordered, axis=1)))
-    corner_score = _safe_exp_score(corner_err, weights.tau_corner_px)
-
-    angle_gt = principal_angle_deg(gt)
-    angle_pr = principal_angle_deg(pred_reordered)
-    angle_err = angle_diff_deg(angle_gt, angle_pr)
-    angle_score_raw = float(np.clip(1.0 - (angle_err / 90.0), 0.0, 1.0))
-    orientation_weight = min(_orientation_reliability(gt), _orientation_reliability(pred_reordered))
-    angle_score = float(orientation_weight * angle_score_raw + (1.0 - orientation_weight) * 1.0)
-
-    center_err = polygon_center_drift_px(gt, pred_reordered)
-    center_score = _safe_exp_score(center_err, weights.tau_center_px)
-
-    shape_score = _shape_score(gt, pred_reordered)
-
-    weighted = (
-        weights.iou * iou_score
-        + weights.corner * corner_score
-        + weights.angle * angle_score
-        + weights.center * center_score
-        + weights.shape * shape_score
+    area_px = max(
+        1.0,
+        float(gt.bbox_xywh_norm[2] * image_w) * float(gt.bbox_xywh_norm[3] * image_h),
     )
-    weighted = float(np.clip(weighted, 0.0, 1.0))
+    sigma_px = max(1.0, 0.1 * (area_px ** 0.5))
 
-    return MatchComponents(
-        iou_score=iou_score,
-        corner_score=corner_score,
-        angle_score=angle_score,
-        center_score=center_score,
-        shape_score=shape_score,
-        weighted_score=weighted,
-    )
+    oks_vals: list[float] = []
+    err_px_vals: list[float] = []
+    for i in range(n):
+        gv = float(gt_k[i, 2]) if gt_k.shape[1] > 2 else 1.0
+        if gv <= 0.0:
+            continue
+        gx = float(gt_k[i, 0]) * image_w
+        gy = float(gt_k[i, 1]) * image_h
+        px = float(pr_k[i, 0]) * image_w
+        py = float(pr_k[i, 1]) * image_h
+        d2 = (gx - px) ** 2 + (gy - py) ** 2
+        oks_vals.append(float(np.exp(-d2 / (2.0 * sigma_px * sigma_px))))
+        err_px_vals.append(float(np.sqrt(d2)))
 
-
-def compute_match_diagnostics(
-    gt: np.ndarray,
-    pred: np.ndarray,
-    pred_conf: float,
-    class_match: bool,
-    image_diag_px: float,
-) -> MatchDiagnostics:
-    pred_reordered = reorder_corners_to_best(gt, pred)
-
-    iou = float(np.clip(polygon_iou(gt, pred_reordered), 0.0, 1.0))
-    inter = iou * (polygon_area(gt) + polygon_area(pred_reordered)) / max(1e-9, (1.0 + iou))
-    gt_area = max(polygon_area(gt), 1e-9)
-    pred_area = max(polygon_area(pred_reordered), 1e-9)
-    gt_area_missed_ratio = float(np.clip(1.0 - (inter / gt_area), 0.0, 1.0))
-    pred_outside_ratio = float(np.clip(1.0 - (inter / pred_area), 0.0, 1.0))
-    corner_error_px = float(np.mean(np.linalg.norm(gt - pred_reordered, axis=1)))
-
-    angle_gt = principal_angle_deg(gt)
-    angle_pr = principal_angle_deg(pred_reordered)
-    angle_error_deg = float(angle_diff_deg(angle_gt, angle_pr))
-
-    center_error_px = float(polygon_center_drift_px(gt, pred_reordered))
-    center_error_norm = center_error_px / max(image_diag_px, 1e-9)
-
-    ga = polygon_area(gt)
-    pa = polygon_area(pred_reordered)
-    area_ratio = pa / max(ga, 1e-9)
-    abs_log_area_ratio = float(abs(np.log(max(area_ratio, 1e-9))))
-    edge_rel_error = _edge_rel_error(gt, pred_reordered)
-
-    return MatchDiagnostics(
-        iou=iou,
-        gt_area_missed_ratio=gt_area_missed_ratio,
-        pred_outside_ratio=pred_outside_ratio,
-        corner_error_px=corner_error_px,
-        angle_error_deg=angle_error_deg,
-        center_error_px=center_error_px,
-        center_error_norm=float(center_error_norm),
-        area_ratio=float(area_ratio),
-        abs_log_area_ratio=abs_log_area_ratio,
-        edge_rel_error=float(edge_rel_error),
-        confidence=float(pred_conf),
-        class_match=1 if class_match else 0,
-    )
+    if not oks_vals:
+        return 0.0, 0.0
+    return float(np.mean(oks_vals)), float(np.mean(err_px_vals))
 
 
 def score_sample(
@@ -280,139 +90,63 @@ def score_sample(
     pred_labels: list[Label],
     w: int,
     h: int,
-    iou_threshold: float,
+    oks_threshold: float,
     weights: ScoreWeights,
 ) -> dict[str, Any]:
     wp = weights.normalized()
-    image_diag_px = float((w * w + h * h) ** 0.5)
-    gt_polys = [_poly_px(g, w, h) for g in gt_labels]
-    pred_polys = [_poly_px(p, w, h) for p in pred_labels]
 
-    matches, unmatched_gt, unmatched_pred = _greedy_match(
-        gt_polys,
-        pred_polys,
-        [g.class_id for g in gt_labels],
-        [p.class_id for p in pred_labels],
-        iou_threshold,
-    )
+    candidates: list[tuple[float, int, int, float, float]] = []
+    for gi, gt in enumerate(gt_labels):
+        for pi, pred in enumerate(pred_labels):
+            iou = _bbox_iou(gt.bbox_xywh_norm, pred.bbox_xywh_norm)
+            oks, err = _pose_oks(gt, pred, w, h)
+            quality = wp.oks * oks + wp.box_iou * iou
+            if oks >= float(oks_threshold):
+                candidates.append((quality, gi, pi, oks, err))
 
-    comps: list[MatchComponents] = []
-    diags: list[MatchDiagnostics] = []
-    for m in matches:
-        c = compute_match_components(gt_polys[m.gt_idx], pred_polys[m.pred_idx], wp)
-        comps.append(c)
-        d = compute_match_diagnostics(
-            gt=gt_polys[m.gt_idx],
-            pred=pred_polys[m.pred_idx],
-            pred_conf=pred_labels[m.pred_idx].confidence,
-            class_match=gt_labels[m.gt_idx].class_id == pred_labels[m.pred_idx].class_id,
-            image_diag_px=image_diag_px,
-        )
-        diags.append(d)
+    candidates.sort(key=lambda x: x[0], reverse=True)
+    used_g: set[int] = set()
+    used_p: set[int] = set()
+    matches: list[tuple[float, float]] = []
+    keypoint_errors: list[float] = []
+    for _q, gi, pi, oks, err in candidates:
+        if gi in used_g or pi in used_p:
+            continue
+        used_g.add(gi)
+        used_p.add(pi)
+        matches.append((oks, _bbox_iou(gt_labels[gi].bbox_xywh_norm, pred_labels[pi].bbox_xywh_norm)))
+        keypoint_errors.append(err)
 
-    if comps:
-        base = float(np.mean([c.weighted_score for c in comps]))
-    else:
-        base = 0.0
+    num_gt = len(gt_labels)
+    num_pred = len(pred_labels)
+    num_matches = len(matches)
+    num_fn = max(0, num_gt - num_matches)
+    num_fp = max(0, num_pred - num_matches)
 
-    denom = max(1, len(gt_labels))
-    fn_pen = (len(unmatched_gt) / denom) * wp.fn_penalty
-    fp_pen = (len(unmatched_pred) / denom) * wp.fp_penalty
-    containment_miss_mean = float(np.mean([d.gt_area_missed_ratio for d in diags])) if diags else 0.0
-    containment_outside_mean = float(np.mean([d.pred_outside_ratio for d in diags])) if diags else 0.0
-    containment_pen = (
-        containment_miss_mean * wp.containment_miss_penalty
-        + containment_outside_mean * wp.containment_outside_penalty
-    )
+    base = float(np.mean([0.75 * oks + 0.25 * iou for oks, iou in matches])) if matches else 0.0
+    denom = max(1, num_gt)
+    penalty_fn = (num_fn / denom) * wp.fn_penalty
+    penalty_fp = (num_fp / denom) * wp.fp_penalty
+    final = float(np.clip(base - penalty_fn - penalty_fp, 0.0, 1.0))
 
-    final = float(np.clip(base - fn_pen - fp_pen - containment_pen, 0.0, 1.0))
-
-    comp_mean = {
-        "iou_score": float(np.mean([c.iou_score for c in comps])) if comps else None,
-        "corner_score": float(np.mean([c.corner_score for c in comps])) if comps else None,
-        "angle_score": float(np.mean([c.angle_score for c in comps])) if comps else None,
-        "center_score": float(np.mean([c.center_score for c in comps])) if comps else None,
-        "shape_score": float(np.mean([c.shape_score for c in comps])) if comps else None,
-    }
-
-    corner_errors = [d.corner_error_px for d in diags]
-    angle_errors = [d.angle_error_deg for d in diags]
-    center_errors = [d.center_error_px for d in diags]
-    center_norm_errors = [d.center_error_norm for d in diags]
-    area_ratios = [d.area_ratio for d in diags]
-    abs_log_area_ratios = [d.abs_log_area_ratio for d in diags]
-    edge_rel_errors = [d.edge_rel_error for d in diags]
-    confidences = [d.confidence for d in diags]
-    class_match_values = [d.class_match for d in diags]
-    gt_area_missed = [d.gt_area_missed_ratio for d in diags]
-    pred_outside = [d.pred_outside_ratio for d in diags]
-
-    diagnostics = {
-        "iou_mean": _stat_or_none([d.iou for d in diags], "mean"),
-        "iou_median": _stat_or_none([d.iou for d in diags], "median"),
-        "iou_p90": _stat_or_none([d.iou for d in diags], "p90"),
-        "iou_p95": _stat_or_none([d.iou for d in diags], "p95"),
-        "corner_error_px_mean": _stat_or_none(corner_errors, "mean"),
-        "corner_error_px_median": _stat_or_none(corner_errors, "median"),
-        "corner_error_px_p90": _stat_or_none(corner_errors, "p90"),
-        "corner_error_px_p95": _stat_or_none(corner_errors, "p95"),
-        "angle_error_deg_mean": _stat_or_none(angle_errors, "mean"),
-        "angle_error_deg_median": _stat_or_none(angle_errors, "median"),
-        "angle_error_deg_p90": _stat_or_none(angle_errors, "p90"),
-        "angle_error_deg_p95": _stat_or_none(angle_errors, "p95"),
-        "center_error_px_mean": _stat_or_none(center_errors, "mean"),
-        "center_error_px_median": _stat_or_none(center_errors, "median"),
-        "center_error_px_p90": _stat_or_none(center_errors, "p90"),
-        "center_error_px_p95": _stat_or_none(center_errors, "p95"),
-        "center_error_norm_mean": _stat_or_none(center_norm_errors, "mean"),
-        "area_ratio_mean": _stat_or_none(area_ratios, "mean"),
-        "abs_log_area_ratio_mean": _stat_or_none(abs_log_area_ratios, "mean"),
-        "edge_rel_error_mean": _stat_or_none(edge_rel_errors, "mean"),
-        "gt_area_missed_ratio_mean": _stat_or_none(gt_area_missed, "mean"),
-        "gt_area_missed_ratio_p90": _stat_or_none(gt_area_missed, "p90"),
-        "pred_outside_ratio_mean": _stat_or_none(pred_outside, "mean"),
-        "confidence_mean": _stat_or_none(confidences, "mean"),
-        "confidence_median": _stat_or_none(confidences, "median"),
-        "class_match_rate": _stat_or_none(class_match_values, "mean"),
-        "angle_le_5_rate": _stat_or_none([1.0 if v <= 5.0 else 0.0 for v in angle_errors], "mean"),
-        "angle_le_10_rate": _stat_or_none([1.0 if v <= 10.0 else 0.0 for v in angle_errors], "mean"),
-        "iou_ge_50_rate": _stat_or_none([1.0 if v >= 0.50 else 0.0 for v in [d.iou for d in diags]], "mean"),
-        "iou_ge_75_rate": _stat_or_none([1.0 if v >= 0.75 else 0.0 for v in [d.iou for d in diags]], "mean"),
-    }
-
+    oks_vals = [v[0] for v in matches]
+    iou_vals = [v[1] for v in matches]
     return {
         "split": split,
         "stem": stem,
-        "image_width_px": int(w),
-        "image_height_px": int(h),
-        "image_diagonal_px": image_diag_px,
-        "num_gt": len(gt_labels),
-        "num_pred": len(pred_labels),
-        "num_matches": len(matches),
-        "num_fn": len(unmatched_gt),
-        "num_fp": len(unmatched_pred),
-        "match_iou_mean": float(np.mean([m.iou for m in matches])) if matches else None,
-        "match_quality_mean": float(np.mean([m.quality for m in matches])) if matches else None,
-        "components_mean": comp_mean,
-        "diagnostics": diagnostics,
-        "num_class_mismatch": int(sum(1 for d in diags if d.class_match == 0)),
-        "gt_class_ids": [int(g.class_id) for g in gt_labels],
-        "pred_class_ids": [int(p.class_id) for p in pred_labels],
-        "hard_class_ids": sorted(
-            {
-                int(gt_labels[m.gt_idx].class_id)
-                for m, d in zip(matches, diags)
-                if int(d.class_match) == 0
-            }
-        ),
-        "match_coverage_gt": float(len(matches) / max(1, len(gt_labels))),
-        "match_coverage_pred": float(len(matches) / max(1, len(pred_labels))),
-        "has_gt": bool(len(gt_labels) > 0),
-        "has_pred": bool(len(pred_labels) > 0),
-        "base_score_0_1": base,
-        "penalty_fn": fn_pen,
-        "penalty_fp": fp_pen,
-        "penalty_containment": containment_pen,
-        "final_score_0_1": final,
-        "final_score_0_100": 100.0 * final,
+        "final_score_0_100": final * 100.0,
+        "num_gt": num_gt,
+        "num_pred": num_pred,
+        "num_matches": num_matches,
+        "num_fn": num_fn,
+        "num_fp": num_fp,
+        "penalty_fn": penalty_fn,
+        "penalty_fp": penalty_fp,
+        "penalty_containment": 0.0,
+        "match_oks_mean": float(np.mean(oks_vals)) if oks_vals else None,
+        "diagnostics": {
+            "oks_mean": float(np.mean(oks_vals)) if oks_vals else None,
+            "bbox_iou_mean": float(np.mean(iou_vals)) if iou_vals else None,
+            "keypoint_error_px_mean": float(np.mean(keypoint_errors)) if keypoint_errors else None,
+        },
     }

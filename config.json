@@ -1,16 +1,15 @@
 {
   "paths": {
     "dataset_root": "dataset",
-    "artifacts_root": "artifacts/models",
-    "configs_root": "configs/datasets",
-    "targets_source_root": "targets"
+    "artifacts_root": "artifacts/models"
   },
   "run": {
     "dataset": "coco1024",
-    "model": "hf-openvision-yolo26-n-obb",
-    "model_key": "yolo26n_obb",
+    "model": "hf-openvision-yolo26-n-pose",
+    "model_key": "yolo26n_pose",
     "run_id": "current",
-    "seed": 42
+    "seed": 42,
+    "task": "pose"
   },
   "dataset": {
     "name": "coco1024",
@@ -19,9 +18,6 @@
       "train",
       "val"
     ]
-  },
-  "generator": {
-    "seed": 42
   },
   "tuner": {
     "enabled": true,
@@ -138,7 +134,7 @@
     "tuned_gpu_signature": "d2c2da918147503a",
     "tuned_at_utc": "2026-02-23T23:33:56+00:00",
     "tuned_by": "gpu-auto-tuner@0.1.0",
-    "tuned_profile_path": "/home/pollivie/workspace-ai/tea-ai/artifacts/models/yolo26n_obb/runs/current/tuner/d2c2da918147503a/tuner_report.json"
+    "tuned_profile_path": "/home/pollivie/workspace-ai/tea-ai-pose/artifacts/models/yolo26n_pose/runs/current/tuner/d2c2da918147503a/tuner_report.json"
   },
   "infer": {
     "imgsz": 640,
@@ -159,35 +155,13 @@
     "device": "auto",
     "conf_threshold": 0.25,
     "infer_iou_threshold": 0.7,
-    "match_iou_threshold": 0.5,
-    "strict_obb": true,
+    "match_oks_threshold": 0.5,
     "max_samples": null,
     "calibrate_confidence": true,
+    "fpr_negative_set_enabled": true,
+    "fpr_threshold": 0.05,
     "calibration_candidates": null,
     "weights_json": null,
     "run_inference": true
-  },
-  "review": {
-    "split": "val",
-    "conf_threshold": 0.25
-  },
-  "checks": {
-    "outlier_threshold_px": 2.0,
-    "debug_overlays_per_split": 10,
-    "gui": false,
-    "seed": 42
-  },
-  "profile": {
-    "dataset": "coco128",
-    "train_epochs": 50,
-    "enable_gpu_sampling": true,
-    "baseline_run": "profile-20260223-193528",
-    "regression_gate": {
-      "min_run_grade_delta": 0.0,
-      "max_precision_drop": 0.02,
-      "max_recall_drop": 0.02,
-      "max_miss_rate_increase": 0.02,
-      "max_total_duration_increase_pct": 5.0
-    }
   }
 }

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import struct
 
-from .labels import OBBLabel, load_obb_labels
+from .labels import PoseLabel, load_pose_labels
 
 
 @dataclass(slots=True)
@@ -122,12 +122,12 @@ def image_shape_fast(path: Path | None) -> tuple[int, int] | None:
     return None
 
 
-def load_prediction_labels(
+def load_prediction_pose_labels(
     predictions_root: Path,
     model_name: str,
     split: str,
     stem: str,
     conf_threshold: float,
-) -> list[OBBLabel]:
+) -> list[PoseLabel]:
     p = predictions_root / model_name / "labels" / split / f"{stem}.txt"
-    return load_obb_labels(p, is_prediction=True, conf_threshold=conf_threshold)
+    return load_pose_labels(p, is_prediction=True, conf_threshold=conf_threshold)

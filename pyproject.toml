@@ -2,24 +2,18 @@
 name = "tea-ai"
 version = "0.1.0"
 description = "Composable AI pipeline workspace"
-readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
   "pipeline-config",
   "pipeline-runtime-utils",
-  "pipeline-profile",
   "gpu-auto-tuner",
   "dinov3-fetcher",
   "dinov3",
-  "augment-checker",
   "detector-grader",
-  "detector-reviewer",
   "detector-infer",
   "detector-train",
   "detector-optimize",
-  "dataset-generator",
-  "dataset-fetcher",
-  "target-labeller",
+  "pose-dataset-scraper",
   "huggingface-hub>=1.4.1",
   "tqdm>=4.66.0",
   "pytest>=9.0.2",
@@ -35,16 +29,11 @@ members = ["packages/*"]
 [tool.uv.sources]
 pipeline-config = { workspace = true }
 pipeline-runtime-utils = { workspace = true }
-pipeline-profile = { workspace = true }
 dinov3-fetcher = { workspace = true }
 dinov3 = { workspace = true }
-augment-checker = { workspace = true }
 detector-grader = { workspace = true }
-detector-reviewer = { workspace = true }
 detector-infer = { workspace = true }
 detector-train = { workspace = true }
 detector-optimize = { workspace = true }
-dataset-generator = { workspace = true }
-dataset-fetcher = { workspace = true }
-target-labeller = { workspace = true }
+pose-dataset-scraper = { workspace = true }
 gpu-auto-tuner = { workspace = true }

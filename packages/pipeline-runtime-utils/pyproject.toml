@@ -6,7 +6,6 @@ build-backend = "hatchling.build"
 name = "pipeline-runtime-utils"
 version = "0.1.0"
 description = "Shared runtime utilities for tea-ai pipeline"
-readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
   "numpy>=2.1.0",

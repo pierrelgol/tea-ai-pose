@@ -6,7 +6,6 @@ build-backend = "hatchling.build"
 name = "detector-optimize"
 version = "0.1.0"
 description = "Export and compile trained detector weights to TensorRT-ready artifacts"
-readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
   "pipeline-config",

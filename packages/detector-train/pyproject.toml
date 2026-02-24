@@ -6,7 +6,6 @@ build-backend = "hatchling.build"
 name = "detector-train"
 version = "0.1.0"
 description = "Focused detector training module with data.yaml generation and W&B logging"
-readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
   "pipeline-config",

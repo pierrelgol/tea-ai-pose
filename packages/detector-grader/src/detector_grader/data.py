@@ -4,12 +4,12 @@ from pathlib import Path
 import re
 
 from pipeline_runtime_utils import (
-    OBBLabel as Label,
+    PoseLabel as Label,
     SampleRecord,
     image_shape_fast,
     index_ground_truth,
-    load_obb_labels,
-    load_prediction_labels as _load_prediction_labels,
+    load_pose_labels,
+    load_prediction_pose_labels as _load_prediction_labels,
     resolve_latest_weights_from_artifacts,
 )
 
@@ -21,7 +21,7 @@ def sanitize_model_name(name: str) -> str:
 
 
 def load_labels(path: Path, *, is_prediction: bool, conf_threshold: float) -> list[Label]:
-    return load_obb_labels(path, is_prediction=is_prediction, conf_threshold=conf_threshold)
+    return load_pose_labels(path, is_prediction=is_prediction, conf_threshold=conf_threshold)
 
 
 def load_prediction_labels(

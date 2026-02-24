@@ -6,7 +6,6 @@ build-backend = "hatchling.build"
 name = "dinov3"
 version = "0.1.0"
 description = "Local DINOv3 teacher loading and feature extraction for distillation"
-readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
   "safetensors>=0.4.5",

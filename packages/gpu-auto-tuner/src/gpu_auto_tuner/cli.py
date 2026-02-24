@@ -72,7 +72,7 @@ def _assert_dataset_ready(payload: dict[str, Any], config_path: Path) -> None:
     raise RuntimeError(
         "tuner dataset is not ready for detector-train. "
         f"expected directories: {train_dir} and {val_dir}. "
-        "run `just generate-dataset` (and dataset fetch steps if needed), "
+        "run `just fetch-dataset`, "
         "or point `tuner.dataset` to an existing augmented dataset."
     )
 
@@ -191,8 +191,8 @@ def main() -> None:
     if batch_cap < batch_min:
         raise RuntimeError("invalid tuner batch range: batch_max_cap < batch_min")
 
-    # Use small profile dataset for tuning runs.
-    tune_dataset = str(tuner.get("dataset") or shared.profile.get("dataset") or shared.run["dataset"])
+    # Use tuner dataset override when provided, otherwise the active run dataset.
+    tune_dataset = str(tuner.get("dataset") or shared.run["dataset"])
     payload["run"]["dataset"] = tune_dataset
     payload["dataset"]["name"] = tune_dataset
 

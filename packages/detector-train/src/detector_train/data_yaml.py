@@ -30,6 +30,7 @@ def write_data_yaml(dataset_root: Path, output_path: Path) -> tuple[Path, list[s
         "val": "images/val",
         "nc": len(names),
         "names": names,
+        "kpt_shape": [17, 3],
     }
 
     output_path.parent.mkdir(parents=True, exist_ok=True)

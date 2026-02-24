@@ -14,7 +14,6 @@ class PipelineLayout:
     infer_root: Path
     grade_root: Path
     eval_root: Path
-    review_root: Path
     meta_root: Path
     latest_run_json: Path
 
@@ -35,7 +34,6 @@ def build_layout(*, artifacts_root: Path, model_key: str, run_id: str) -> Pipeli
         infer_root=run_root / "infer",
         grade_root=run_root / "grade",
         eval_root=run_root / "eval",
-        review_root=run_root / "review",
         meta_root=run_root / "meta",
         latest_run_json=artifacts_root / "latest_run.json",
     )

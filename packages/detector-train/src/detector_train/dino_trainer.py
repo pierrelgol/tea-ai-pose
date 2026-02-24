@@ -9,8 +9,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from ultralytics.models.yolo.obb.train import OBBTrainer
-from ultralytics.utils import ops
+from ultralytics.models.yolo.pose.train import PoseTrainer
 from ultralytics.utils.torch_utils import unwrap_model
 
 from dinov3_bridge import DinoV3Teacher, resolve_local_dinov3_root
@@ -35,8 +34,8 @@ class DinoDistillConfig:
     viz_max_samples: int
 
 
-class DinoOBBTrainer(OBBTrainer):
-    """OBB trainer with mandatory spatial DINOv3 feature distillation."""
+class DinoPoseTrainer(PoseTrainer):
+    """Pose trainer with mandatory spatial DINOv3 feature distillation."""
 
     def __init__(self, cfg=None, overrides=None, _callbacks=None, *, dino_cfg: DinoDistillConfig | None = None):
         if cfg is None:
@@ -44,7 +43,7 @@ class DinoOBBTrainer(OBBTrainer):
         else:
             super().__init__(cfg=cfg, overrides=overrides, _callbacks=_callbacks)
         if dino_cfg is None:
-            raise ValueError("dino_cfg is required for DinoOBBTrainer")
+            raise ValueError("dino_cfg is required for DinoPoseTrainer")
         self._dino_cfg = dino_cfg
 
     def _setup_train(self) -> None:
@@ -120,22 +119,21 @@ class DinoOBBTrainer(OBBTrainer):
             boxes_px[:, 1] = boxes_px[:, 1].clamp(0.0, 1.0) * h
             boxes_px[:, 2] = boxes_px[:, 2].clamp(0.0, 1.0) * w
             boxes_px[:, 3] = boxes_px[:, 3].clamp(0.0, 1.0) * h
-            polys = ops.xywhr2xyxyxyxy(boxes_px).detach().cpu().numpy()
             for bi in range(mask.shape[0]):
                 idxs = (batch_idx == bi).nonzero(as_tuple=False).view(-1).detach().cpu().numpy()
                 if idxs.size == 0:
                     continue
                 canvas = np.zeros((h, w), dtype=np.uint8)
-                pts: list[np.ndarray] = []
                 for i in idxs.tolist():
-                    poly = np.round(polys[i]).astype(np.int32).reshape(-1, 2)
-                    poly[:, 0] = np.clip(poly[:, 0], 0, max(0, w - 1))
-                    poly[:, 1] = np.clip(poly[:, 1], 0, max(0, h - 1))
-                    if poly.shape[0] == 4:
-                        pts.append(poly)
-                if pts:
-                    cv2.fillPoly(canvas, pts, color=1)
-                    mask[bi, 0] = torch.from_numpy(canvas).to(device=device, dtype=mask.dtype)
+                    cx, cy, bw, bh = [float(v) for v in boxes_px[i].tolist()]
+                    x1 = max(0, min(w - 1, int(round(cx - 0.5 * bw))))
+                    y1 = max(0, min(h - 1, int(round(cy - 0.5 * bh))))
+                    x2 = max(0, min(w - 1, int(round(cx + 0.5 * bw))))
+                    y2 = max(0, min(h - 1, int(round(cy + 0.5 * bh))))
+                    if x2 <= x1 or y2 <= y1:
+                        continue
+                    cv2.rectangle(canvas, (x1, y1), (x2, y2), color=1, thickness=-1)
+                mask[bi, 0] = torch.from_numpy(canvas).to(device=device, dtype=mask.dtype)
             return mask
 
         def _compute_distill_loss(batch: dict[str, torch.Tensor]) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -305,3 +303,4 @@ class DinoOBBTrainer(OBBTrainer):
                 h.remove()
             except Exception:
                 pass
+
