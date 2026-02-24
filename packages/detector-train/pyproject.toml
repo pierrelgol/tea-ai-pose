@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling>=1.24.2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "detector-train"
+version = "0.1.0"
+description = "Focused detector training module with data.yaml generation and W&B logging"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "pipeline-config",
+  "pipeline-runtime-utils",
+  "dinov3",
+  "detector-grader",
+  "detector-infer",
+  "pyyaml>=6.0.1",
+  "ultralytics==8.4.14",
+  "wandb==0.25.0",
+]
+
+[project.scripts]
+detector-train = "detector_train.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/detector_train"]

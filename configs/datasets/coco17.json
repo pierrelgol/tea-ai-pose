@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "name": "coco17",
+  "dataset_dir_name": "coco17",
+  "source": {
+    "type": "local_dir",
+    "local_path": "dataset/coco17"
+  },
+  "splits": {
+    "train_images_rel": "images/train2017",
+    "val_images_rel": "images/val2017"
+  },
+  "validation": {
+    "required_paths_rel": [
+      "images/train2017",
+      "images/val2017"
+    ]
+  }
+}

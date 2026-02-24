@@ -1,0 +1,19 @@
+[build-system]
+requires = ["hatchling>=1.24.2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dataset-fetcher"
+version = "0.1.0"
+description = "Fetch and prepare datasets for tea-ai"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "pipeline-config",
+]
+
+[project.scripts]
+dataset-fetcher = "dataset_fetcher.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/dataset_fetcher"]

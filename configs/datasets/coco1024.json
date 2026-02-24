@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "name": "coco1024",
+  "dataset_dir_name": "coco1024",
+  "source": {
+    "type": "coco_ids_local",
+    "local_path": "/home/pollivie/workspace-ai/dataset",
+    "ids": {
+      "images_rel": "train2017",
+      "train_ids_rel": "stuff_annotations_trainval2017/annotations/deprecated-challenge2017/train-ids.txt",
+      "val_ids_rel": "stuff_annotations_trainval2017/annotations/deprecated-challenge2017/val-ids.txt"
+    },
+    "subset": {
+      "train_max_images": 768,
+      "val_max_images": 256,
+      "seed": 2707
+    }
+  },
+  "splits": {
+    "train_images_rel": "images/train",
+    "val_images_rel": "images/val"
+  },
+  "validation": {
+    "required_paths_rel": [
+      "images/train",
+      "images/val"
+    ]
+  }
+}

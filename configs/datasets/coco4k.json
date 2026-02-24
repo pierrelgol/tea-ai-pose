@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "name": "coco4k",
+  "dataset_dir_name": "coco4k",
+  "source": {
+    "type": "coco_subset_local",
+    "local_path": "dataset/coco17",
+    "subset": {
+      "train_max_images": 4096,
+      "val_max_images": 1024,
+      "seed": 42
+    }
+  },
+  "splits": {
+    "train_images_rel": "images/train2017",
+    "val_images_rel": "images/val2017"
+  },
+  "validation": {
+    "required_paths_rel": [
+      "images/train2017",
+      "images/val2017",
+      "labels/train2017",
+      "labels/val2017"
+    ]
+  }
+}

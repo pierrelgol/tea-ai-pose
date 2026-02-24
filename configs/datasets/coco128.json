@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "name": "coco128",
+  "dataset_dir_name": "coco128",
+  "source": {
+    "type": "ultralytics_zip",
+    "urls": [
+      "https://github.com/ultralytics/assets/releases/download/v0.0.0/coco128.zip",
+      "https://ultralytics.com/assets/coco128.zip"
+    ]
+  },
+  "splits": {
+    "train_images_rel": "images/train2017",
+    "val_images_rel": "images/train2017"
+  },
+  "validation": {
+    "required_paths_rel": [
+      "images/train2017",
+      "labels/train2017"
+    ]
+  }
+}

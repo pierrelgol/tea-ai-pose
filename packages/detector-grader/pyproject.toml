@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling>=1.24.2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "detector-grader"
+version = "0.1.0"
+description = "OBB-focused run grading tool for detector predictions"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "pipeline-config",
+  "pipeline-runtime-utils",
+  "detector-infer",
+  "numpy>=2.1.0",
+  "opencv-python-headless>=4.10.0.84",
+]
+
+[project.scripts]
+detector-grader = "detector_grader.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/detector_grader"]

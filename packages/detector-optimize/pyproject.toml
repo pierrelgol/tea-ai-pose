@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling>=1.24.2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "detector-optimize"
+version = "0.1.0"
+description = "Export and compile trained detector weights to TensorRT-ready artifacts"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "pipeline-config",
+  "pipeline-runtime-utils",
+  "ultralytics>=8.3.0",
+]
+
+[project.scripts]
+detector-optimize = "detector_optimize.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/detector_optimize"]

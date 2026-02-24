@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "name": "coco8",
+  "dataset_dir_name": "coco8",
+  "source": {
+    "type": "ultralytics_zip",
+    "urls": [
+      "https://github.com/ultralytics/assets/releases/download/v0.0.0/coco8.zip",
+      "https://ultralytics.com/assets/coco8.zip"
+    ]
+  },
+  "splits": {
+    "train_images_rel": "images/train",
+    "val_images_rel": "images/val"
+  },
+  "validation": {
+    "required_paths_rel": [
+      "images/train",
+      "images/val",
+      "labels/train",
+      "labels/val"
+    ]
+  }
+}

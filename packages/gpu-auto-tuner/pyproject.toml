@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling>=1.24.2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gpu-auto-tuner"
+version = "0.1.0"
+description = "Offline GPU auto-tuning for tea-ai train configuration"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "pipeline-config",
+  "detector-train",
+  "pipeline-runtime-utils",
+]
+
+[project.scripts]
+gpu-auto-tuner = "gpu_auto_tuner.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gpu_auto_tuner"]
